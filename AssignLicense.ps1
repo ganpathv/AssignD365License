@@ -76,21 +76,21 @@ function AssignLicenses()
     # Iterate through the list of users retrieved
     Write-Host "Found " $enabledUsers.Count " enabled and licensed users to process"
 
+	$LicenseToRemove = Get-MsolAccountSku | select AccountSkuId | where {$_ -match $CrmOnlineProfessionalPlan}
+	
+	# All Plans are prefixed with Domain name and a :. e.g. Gavenkat:CRMSTANDARD
+	$skuPrefix = $LicenseToRemove.AccountSkuId.Substring(0,$LicenseToRemove.AccountSkuId.IndexOf((":"))+1)
+
+	$LicenseToAdd = $skuPrefix + $Dyn365EnterprisePlan
+
     foreach($enabledUser in $enabledUsers)
     {
         $UPN = $enabledUser.UserPrincipalName
-
-        $LicenseToRemove = Get-MsolAccountSku | select AccountSkuId | where {$_ -match $CrmOnlineProfessionalPlan}
 
         # Get the list of licenses
         $userLicenses = Get-MsolUser -UserPrincipalName $UPN 
 
         $license = $userLicenses.Licenses | select AccountSkuId | where {$_ -match $LicenseToRemove}
-
-        # All Plans are prefixed with Domain name and a :. e.g. Gavenkat:CRMSTANDARD
-        $skuPrefix = $license.AccountSkuId.Substring(0,$license.AccountSkuId.IndexOf((":"))+1)
-
-        $LicenseToAdd = $skuPrefix + $Dyn365EnterprisePlan
 
         if($license)
         {
@@ -163,6 +163,7 @@ try
             }
             "AssignLicenseFromO365"
             {
+                # Though the same method is called, segregating the call just to provide the ability to extend this if required
                 AssignLicenses
             }
             "AssignLicenseFromCsv"
